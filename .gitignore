@@ -24,9 +24,11 @@ wheels/
 *.egg
 
 # Data files (large CSV)
-data/processed/
+# data/processed/  # Commented out to include processed data for deployment
 *.csv
-!data/processed/.gitkeep
+!data/processed/*.csv  # Allow processed CSV files
+!data/processed/*.parquet  # Allow processed parquet files
+!data/processed/*.json  # Allow metadata JSON
 
 # IDE
 .vscode/
