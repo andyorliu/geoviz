@@ -23,7 +23,8 @@ class DataLoader:
             base3 = os.path.join(os.path.dirname(os.path.dirname(script_dir)), 'data')
             # Strategy 4: Check if we're in a deployed environment (Railway/Render)
             # In deployed environments, files are usually in the root
-            base4 = os.path.join(os.path.abspath(os.sep), 'app', 'data') if os.path.exists(os.path.join(os.path.abspath(os.sep), 'app', 'data')) else None
+            base4_path = os.path.join('/', 'app', 'data')
+            base4 = base4_path if os.path.exists(base4_path) else None
             base5 = os.path.join(os.path.abspath('.'), 'data')
             
             # Try all paths and use first that exists
