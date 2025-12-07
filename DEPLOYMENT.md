@@ -44,22 +44,30 @@ heroku create your-app-name
 git push heroku main
 ```
 
-## Option 4: Railway
+## Option 4: Railway (Updated Configuration)
 
-1. Create `railway.json`:
-```json
-{
-  "build": {
-    "builder": "NIXPACKS"
-  },
-  "deploy": {
-    "startCommand": "gunicorn src.app:server --bind 0.0.0.0:$PORT"
-  }
-}
-```
+1. The project includes `railway.json` and `nixpacks.toml` for Railway deployment:
+   - `railway.json`: Main Railway configuration
+   - `nixpacks.toml`: Build configuration for Nixpacks
+   - `Procfile`: Alternative process file
 
-2. Connect GitHub repository to Railway
-3. Deploy automatically
+2. Connect GitHub repository to Railway:
+   - Go to [railway.app](https://railway.app)
+   - Create new project → Deploy from GitHub repo
+   - Select your repository
+
+3. Railway will automatically:
+   - Detect Python project
+   - Use the build command from `railway.json`
+   - Deploy with the start command
+
+4. **Troubleshooting Railway Issues:**
+   - Check Railway logs for errors (View Logs in Railway dashboard)
+   - Verify data files are committed to git (run `git ls-files data/processed/`)
+   - Ensure `data/processed/` directory exists in repository
+   - Check that PORT environment variable is set (Railway sets this automatically)
+   - If visualizations don't load, check browser console for JavaScript errors
+   - Run `python check_deployment.py` locally to verify paths
 
 ## Option 5: GitHub Pages (Static Export)
 
@@ -71,30 +79,22 @@ For GitHub Pages, you need to export the dashboard as static HTML. However, this
 
 **Note**: Full interactivity requires a running server, so GitHub Pages is not ideal for Dash apps.
 
-## Option 6: Docker
+## Option 6: Docker (Alternative Deployment)
 
-Create a `Dockerfile`:
-
-```dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-
-EXPOSE 8050
-
-CMD ["python", "src/app.py"]
-```
+A `Dockerfile` is included in the project. This is useful for:
+- Local testing of deployment environment
+- Alternative to Railway/Render
+- Consistent deployment across platforms
 
 Build and run:
 ```bash
 docker build -t crime-dashboard .
-docker run -p 8050:8050 crime-dashboard
+docker run -p 8050:8050 -e PORT=8050 crime-dashboard
 ```
+
+Or use with Railway:
+- Railway can detect and use Dockerfile automatically
+- Set Railway to use Dockerfile instead of Nixpacks if preferred
 
 ## Recommended: Railway or Heroku
 
@@ -108,8 +108,37 @@ If needed, you can set environment variables for:
 
 ## Data Files
 
-Make sure processed data files are included in deployment or generated on first run. You may want to:
-- Include `data/processed/` in repository (if files are small)
-- Or run preprocessing script as part of deployment
-- Or use a data storage service (S3, etc.)
+**Important**: Make sure processed data files are included in deployment:
+- The `data/processed/` directory is tracked in git (see `.gitignore`)
+- Files should be committed: `git add data/processed/ && git commit`
+- Verify with: `git ls-files data/processed/`
+
+If visualizations don't work after deployment:
+1. Check Railway logs for "Failed to load data" messages
+2. Verify data files exist: Check Railway file explorer or logs
+3. Run `python check_deployment.py` to diagnose path issues
+4. Ensure `data/processed/` directory structure is preserved
+
+## Troubleshooting Common Issues
+
+### Visualizations Not Loading
+1. **Check browser console** (F12) for JavaScript errors
+2. **Check Railway logs** for Python errors during data loading
+3. **Verify data files**: Ensure `data/processed/*.csv` files are in repository
+4. **Path issues**: The data loader tries multiple path strategies automatically
+
+### App Crashes on Startup
+1. Check Railway logs for import errors
+2. Verify all dependencies in `requirements.txt` are correct
+3. Check Python version compatibility (project uses Python 3.10)
+
+### Port Binding Issues
+- Railway automatically sets `$PORT` environment variable
+- The start command uses `--bind 0.0.0.0:$PORT`
+- If using Docker, ensure PORT env var is passed
+
+### Gunicorn Worker Issues
+- Current config: `--workers 2 --threads 4 --timeout 120`
+- Adjust based on your Railway plan limits
+- For free tier, you may need `--workers 1`
 

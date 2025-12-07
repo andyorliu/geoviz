@@ -21,16 +21,26 @@ class DataLoader:
             # Strategy 3: Absolute path from script location
             script_dir = os.path.dirname(os.path.abspath(__file__))
             base3 = os.path.join(os.path.dirname(os.path.dirname(script_dir)), 'data')
+            # Strategy 4: Check if we're in a deployed environment (Railway/Render)
+            # In deployed environments, files are usually in the root
+            base4 = os.path.join(os.path.abspath(os.sep), 'app', 'data') if os.path.exists(os.path.join(os.path.abspath(os.sep), 'app', 'data')) else None
+            base5 = os.path.join(os.path.abspath('.'), 'data')
             
-            # Use first path that exists, or default to base1
-            if os.path.exists(base1):
+            # Try all paths and use first that exists
+            potential_paths = [base1, base2, base3, base5]
+            if base4:
+                potential_paths.insert(0, base4)
+            
+            self.base_dir = None
+            for path in potential_paths:
+                if path and os.path.exists(path):
+                    self.base_dir = path
+                    break
+            
+            # If no path found, use base1 as fallback but log warning
+            if self.base_dir is None:
                 self.base_dir = base1
-            elif os.path.exists(base2):
-                self.base_dir = base2
-            elif os.path.exists(base3):
-                self.base_dir = base3
-            else:
-                self.base_dir = base1  # Default fallback
+                print(f"WARNING: No data directory found, using fallback: {self.base_dir}")
             
             # Debug: print paths
             print(f"DEBUG: DataLoader initialized")
