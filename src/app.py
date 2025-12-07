@@ -268,9 +268,44 @@ app.layout = dbc.Container([
     # Store for filtered data
     dcc.Store(id='filtered-data-store'),
     # Store for current map type
-    dcc.Store(id='map-type-store', data='heatmap')
+    dcc.Store(id='map-type-store', data='heatmap'),
+    
+    # Debug info (hidden by default, can be shown in browser console)
+    html.Div(id='debug-info', style={'display': 'none'})
     
 ], fluid=True)
+
+# Add debug endpoint
+@app.server.route('/debug')
+def debug_info():
+    """Debug endpoint to check data loading status"""
+    import json
+    debug_data = {
+        'data_loader_base_dir': data_loader.base_dir,
+        'data_loader_processed_dir': data_loader.processed_dir,
+        'base_dir_exists': os.path.exists(data_loader.base_dir),
+        'processed_dir_exists': os.path.exists(data_loader.processed_dir),
+    }
+    
+    if os.path.exists(data_loader.processed_dir):
+        files = os.listdir(data_loader.processed_dir)
+        debug_data['processed_files'] = files
+        debug_data['file_count'] = len(files)
+        
+        # Check if key files exist
+        key_files = ['cleaned_data_sample.csv', 'area_aggregations.csv', 'crime_type_counts.csv', 'metadata.json']
+        debug_data['key_files_exist'] = {
+            f: os.path.exists(os.path.join(data_loader.processed_dir, f)) for f in key_files
+        }
+    
+    # Test data loading
+    test_data = data_loader.load_cleaned_data(sample=True)
+    debug_data['test_data_loaded'] = test_data is not None
+    if test_data is not None:
+        debug_data['test_data_rows'] = len(test_data)
+        debug_data['test_data_columns'] = list(test_data.columns)[:10]
+    
+    return json.dumps(debug_data, indent=2)
 
 # Callback to apply filters and update store
 @app.callback(

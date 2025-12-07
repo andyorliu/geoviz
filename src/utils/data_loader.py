@@ -206,7 +206,18 @@ class DataLoader:
         """Get list of available areas"""
         area_agg = self.load_area_aggregations()
         if area_agg is not None:
-            return sorted(area_agg['AREA NAME'].unique().tolist())
+            # Try different possible column names
+            if 'AREA NAME' in area_agg.columns:
+                return sorted(area_agg['AREA NAME'].unique().tolist())
+            elif 'AREA_NAME' in area_agg.columns:
+                return sorted(area_agg['AREA_NAME'].unique().tolist())
+            elif 'Area Name' in area_agg.columns:
+                return sorted(area_agg['Area Name'].unique().tolist())
+            else:
+                # Try to find a column that looks like area names
+                for col in area_agg.columns:
+                    if 'area' in col.lower() or 'name' in col.lower():
+                        return sorted(area_agg[col].unique().tolist())
         return []
     
     def get_available_crime_types(self):
