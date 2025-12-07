@@ -13,12 +13,44 @@ class DataLoader:
     
     def __init__(self, data_dir=None):
         if data_dir is None:
-            # Default to project data directory
-            self.base_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data')
+            # Default to project data directory - try multiple path strategies
+            # Strategy 1: Relative to this file (src/utils/data_loader.py -> data/)
+            base1 = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data')
+            # Strategy 2: Current working directory
+            base2 = os.path.join(os.getcwd(), 'data')
+            # Strategy 3: Absolute path from script location
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            base3 = os.path.join(os.path.dirname(os.path.dirname(script_dir)), 'data')
+            
+            # Use first path that exists, or default to base1
+            if os.path.exists(base1):
+                self.base_dir = base1
+            elif os.path.exists(base2):
+                self.base_dir = base2
+            elif os.path.exists(base3):
+                self.base_dir = base3
+            else:
+                self.base_dir = base1  # Default fallback
+            
+            # Debug: print paths
+            print(f"DEBUG: DataLoader initialized")
+            print(f"  base_dir: {self.base_dir}")
+            print(f"  base_dir exists: {os.path.exists(self.base_dir)}")
         else:
             self.base_dir = data_dir
         
         self.processed_dir = os.path.join(self.base_dir, 'processed')
+        print(f"  processed_dir: {self.processed_dir}")
+        print(f"  processed_dir exists: {os.path.exists(self.processed_dir)}")
+        
+        # List files in processed directory
+        if os.path.exists(self.processed_dir):
+            files = os.listdir(self.processed_dir)
+            print(f"  Files in processed_dir: {len(files)} files")
+            print(f"  Sample files: {files[:5]}")
+        else:
+            print(f"  WARNING: processed_dir does not exist!")
+        
         self._cache = {}
         self._metadata = None
     
@@ -43,15 +75,26 @@ class DataLoader:
             else:
                 file_path = os.path.join(self.base_dir, 'Crime_Data_from_2020_to_Present.csv')
             
+            print(f"DEBUG: Loading data from: {file_path}")
+            print(f"DEBUG: File exists: {os.path.exists(file_path)}")
+            
             if os.path.exists(file_path):
-                df = pd.read_csv(file_path)
-                # Convert date columns if they exist
-                if 'DATE OCC' in df.columns:
-                    df['DATE OCC'] = pd.to_datetime(df['DATE OCC'], errors='coerce')
-                if 'Date Rptd' in df.columns:
-                    df['Date Rptd'] = pd.to_datetime(df['Date Rptd'], errors='coerce')
-                self._cache[cache_key] = df
+                try:
+                    df = pd.read_csv(file_path)
+                    print(f"DEBUG: Loaded {len(df)} rows, {len(df.columns)} columns")
+                    print(f"DEBUG: Columns: {list(df.columns)[:5]}...")
+                    # Convert date columns if they exist
+                    if 'DATE OCC' in df.columns:
+                        df['DATE OCC'] = pd.to_datetime(df['DATE OCC'], errors='coerce')
+                    if 'Date Rptd' in df.columns:
+                        df['Date Rptd'] = pd.to_datetime(df['Date Rptd'], errors='coerce')
+                    self._cache[cache_key] = df
+                    print(f"DEBUG: Data cached successfully")
+                except Exception as e:
+                    print(f"DEBUG: Error loading CSV: {e}")
+                    return None
             else:
+                print(f"DEBUG: File not found: {file_path}")
                 return None
         
         return self._cache[cache_key]
@@ -170,7 +213,16 @@ class DataLoader:
         """Get list of available crime types"""
         crime_types = self.load_crime_type_counts()
         if crime_types is not None:
-            return crime_types['Crime_Type'].tolist()
+            # Try different possible column names
+            if 'Crm Cd Desc' in crime_types.columns:
+                return crime_types['Crm Cd Desc'].tolist()
+            elif 'Crime_Type' in crime_types.columns:
+                return crime_types['Crime_Type'].tolist()
+            elif 'Crime Type' in crime_types.columns:
+                return crime_types['Crime Type'].tolist()
+            else:
+                # Return first column if we can't find the right one
+                return crime_types.iloc[:, 0].tolist()
         return []
     
     def get_date_range(self):

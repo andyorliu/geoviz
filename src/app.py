@@ -29,7 +29,19 @@ from components.stats_panel import create_stats_cards
 from utils.filters import filter_by_time_of_day, filter_by_day_of_week, filter_by_season
 
 # Initialize data loader
+print("="*50)
+print("Initializing data loader...")
 data_loader = get_data_loader()
+
+# Test data loading
+print("\nTesting data loading...")
+test_data = data_loader.load_cleaned_data(sample=True)
+if test_data is not None:
+    print(f"✓ Successfully loaded {len(test_data)} rows of data")
+    print(f"  Columns: {list(test_data.columns)[:5]}...")
+else:
+    print("✗ Failed to load data - check file paths")
+print("="*50)
 
 # Initialize Dash app with Bootstrap theme
 # CSS files in assets/ folder are automatically loaded by Dash
@@ -41,8 +53,11 @@ try:
     available_areas = data_loader.get_available_areas()
     available_crime_types = data_loader.get_available_crime_types()[:50]  # Top 50 for performance
     date_range = data_loader.get_date_range()
+    print(f"Loaded options: {len(available_areas)} areas, {len(available_crime_types)} crime types")
 except Exception as e:
     print(f"Warning: Could not load data options: {e}")
+    import traceback
+    traceback.print_exc()
     available_areas = []
     available_crime_types = []
     date_range = {'start': '2022-01-01', 'end': '2022-12-31'}
