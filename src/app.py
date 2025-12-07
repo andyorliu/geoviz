@@ -391,15 +391,34 @@ def update_map(data, map_type):
             x=0.5, y=0.5, showarrow=False
         )
     
-    df = pd.DataFrame(data)
-    
-    # Use component functions based on map type
-    if map_type == 'heatmap':
-        return create_map_heatmap(df)
-    elif map_type == 'clusters':
-        return create_map_clusters(df)
-    else:  # points
-        return create_map_points(df)
+    try:
+        df = pd.DataFrame(data)
+        
+        # Debug: Check for coordinate columns
+        print(f"DEBUG update_map: DataFrame shape: {df.shape}")
+        print(f"DEBUG update_map: Columns: {list(df.columns)[:10]}")
+        if 'LAT' in df.columns and 'LON' in df.columns:
+            valid_coords = df[(df['LAT'].notna()) & (df['LON'].notna())]
+            print(f"DEBUG update_map: Valid coordinates: {len(valid_coords)}/{len(df)}")
+        else:
+            print(f"DEBUG update_map: LAT/LON columns not found!")
+        
+        # Use component functions based on map type
+        if map_type == 'heatmap':
+            return create_map_heatmap(df)
+        elif map_type == 'clusters':
+            return create_map_clusters(df)
+        else:  # points
+            return create_map_points(df)
+    except Exception as e:
+        print(f"Error in update_map: {e}")
+        import traceback
+        traceback.print_exc()
+        return go.Figure().add_annotation(
+            text=f"Error loading map: {str(e)}",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False
+        )
 
 # Callback to update time series
 @app.callback(

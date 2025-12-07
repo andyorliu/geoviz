@@ -10,128 +10,256 @@ import numpy as np
 def create_map_heatmap(df, center_lat=None, center_lon=None):
     """Create heatmap visualization"""
     if df is None or df.empty:
-        return go.Figure()
+        return go.Figure().add_annotation(
+            text="No data available",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False
+        )
     
-    valid_df = df[(df['LAT'].notna()) & (df['LON'].notna())]
+    # Check for coordinate columns (try different possible names)
+    lat_col = None
+    lon_col = None
+    for col in df.columns:
+        if col.upper() in ['LAT', 'LATITUDE', 'LAT_COL']:
+            lat_col = col
+        if col.upper() in ['LON', 'LONG', 'LONGITUDE', 'LON_COL']:
+            lon_col = col
+    
+    if lat_col is None or lon_col is None:
+        return go.Figure().add_annotation(
+            text="No coordinate data found. Expected 'LAT' and 'LON' columns.",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False
+        )
+    
+    valid_df = df[(df[lat_col].notna()) & (df[lon_col].notna())]
     
     if valid_df.empty:
-        return go.Figure()
+        return go.Figure().add_annotation(
+            text="No valid coordinates in data",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False
+        )
     
     # Sample for performance
     if len(valid_df) > 10000:
         valid_df = valid_df.sample(n=10000, random_state=42)
     
     if center_lat is None:
-        center_lat = valid_df['LAT'].mean()
+        center_lat = valid_df[lat_col].mean()
     if center_lon is None:
-        center_lon = valid_df['LON'].mean()
+        center_lon = valid_df[lon_col].mean()
     
     fig = go.Figure()
     
-    fig.add_trace(go.Densitymapbox(
-        lat=valid_df['LAT'],
-        lon=valid_df['LON'],
-        z=[1] * len(valid_df),
-        radius=10,
-        colorscale='Reds',
-        showscale=True,
-        colorbar=dict(title="Crime Density<br>(Relative Intensity)", titleside="right"),
-        below=''
-    ))
-    
-    fig.update_layout(
-        mapbox=dict(
-            style='open-street-map',
-            center=dict(lat=center_lat, lon=center_lon),
-            zoom=10
-        ),
-        margin=dict(l=0, r=0, t=0, b=0),
-        height=600
-    )
+    try:
+        fig.add_trace(go.Densitymapbox(
+            lat=valid_df[lat_col].tolist(),
+            lon=valid_df[lon_col].tolist(),
+            z=[1] * len(valid_df),
+            radius=10,
+            colorscale='Reds',
+            showscale=True,
+            colorbar=dict(title="Crime Density<br>(Relative Intensity)", titleside="right"),
+            below=''
+        ))
+        
+        fig.update_layout(
+            mapbox=dict(
+                style='open-street-map',
+                center=dict(lat=float(center_lat), lon=float(center_lon)),
+                zoom=10,
+                accesstoken=None  # Explicitly set to None for open-street-map
+            ),
+            margin=dict(l=0, r=0, t=0, b=0),
+            height=600
+        )
+    except Exception as e:
+        print(f"Error creating map heatmap: {e}")
+        # Fallback to scatter plot
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=valid_df[lon_col],
+            y=valid_df[lat_col],
+            mode='markers',
+            marker=dict(size=3, color='red', opacity=0.5)
+        ))
+        fig.update_layout(
+            title="Crime Locations (Fallback View)",
+            xaxis_title="Longitude",
+            yaxis_title="Latitude",
+            height=600
+        )
     
     return fig
 
 def create_map_clusters(df, center_lat=None, center_lon=None):
     """Create clustered markers visualization"""
     if df is None or df.empty:
-        return go.Figure()
+        return go.Figure().add_annotation(
+            text="No data available",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False
+        )
     
-    valid_df = df[(df['LAT'].notna()) & (df['LON'].notna())]
+    # Check for coordinate columns
+    lat_col = None
+    lon_col = None
+    for col in df.columns:
+        if col.upper() in ['LAT', 'LATITUDE']:
+            lat_col = col
+        if col.upper() in ['LON', 'LONG', 'LONGITUDE']:
+            lon_col = col
+    
+    if lat_col is None or lon_col is None:
+        return go.Figure().add_annotation(
+            text="No coordinate data found",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False
+        )
+    
+    valid_df = df[(df[lat_col].notna()) & (df[lon_col].notna())]
     
     if valid_df.empty:
-        return go.Figure()
+        return go.Figure().add_annotation(
+            text="No valid coordinates",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False
+        )
     
     # Sample for performance
     if len(valid_df) > 5000:
         valid_df = valid_df.sample(n=5000, random_state=42)
     
     if center_lat is None:
-        center_lat = valid_df['LAT'].mean()
+        center_lat = valid_df[lat_col].mean()
     if center_lon is None:
-        center_lon = valid_df['LON'].mean()
+        center_lon = valid_df[lon_col].mean()
     
     fig = go.Figure()
     
-    fig.add_trace(go.Scattermapbox(
-        lat=valid_df['LAT'],
-        lon=valid_df['LON'],
-        mode='markers',
-        marker=dict(size=5, color='red', opacity=0.6),
-        text=valid_df.get('Crm Cd Desc', ''),
-        hovertemplate='<b>%{text}</b><br>Lat: %{lat:.4f}<br>Lon: %{lon:.4f}<extra></extra>'
-    ))
-    
-    fig.update_layout(
-        mapbox=dict(
-            style='open-street-map',
-            center=dict(lat=center_lat, lon=center_lon),
-            zoom=10
-        ),
-        margin=dict(l=0, r=0, t=0, b=0),
-        height=600
-    )
+    try:
+        crime_desc = valid_df.get('Crm Cd Desc', valid_df.get('Crime Type', ''))
+        fig.add_trace(go.Scattermapbox(
+            lat=valid_df[lat_col].tolist(),
+            lon=valid_df[lon_col].tolist(),
+            mode='markers',
+            marker=dict(size=5, color='red', opacity=0.6),
+            text=crime_desc if isinstance(crime_desc, pd.Series) else '',
+            hovertemplate='<b>%{text}</b><br>Lat: %{lat:.4f}<br>Lon: %{lon:.4f}<extra></extra>'
+        ))
+        
+        fig.update_layout(
+            mapbox=dict(
+                style='open-street-map',
+                center=dict(lat=float(center_lat), lon=float(center_lon)),
+                zoom=10,
+                accesstoken=None
+            ),
+            margin=dict(l=0, r=0, t=0, b=0),
+            height=600
+        )
+    except Exception as e:
+        print(f"Error creating map clusters: {e}")
+        # Fallback
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=valid_df[lon_col],
+            y=valid_df[lat_col],
+            mode='markers',
+            marker=dict(size=5, color='red', opacity=0.6)
+        ))
+        fig.update_layout(
+            title="Crime Locations",
+            xaxis_title="Longitude",
+            yaxis_title="Latitude",
+            height=600
+        )
     
     return fig
 
 def create_map_points(df, center_lat=None, center_lon=None):
     """Create individual points visualization"""
     if df is None or df.empty:
-        return go.Figure()
+        return go.Figure().add_annotation(
+            text="No data available",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False
+        )
     
-    valid_df = df[(df['LAT'].notna()) & (df['LON'].notna())]
+    # Check for coordinate columns
+    lat_col = None
+    lon_col = None
+    for col in df.columns:
+        if col.upper() in ['LAT', 'LATITUDE']:
+            lat_col = col
+        if col.upper() in ['LON', 'LONG', 'LONGITUDE']:
+            lon_col = col
+    
+    if lat_col is None or lon_col is None:
+        return go.Figure().add_annotation(
+            text="No coordinate data found",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False
+        )
+    
+    valid_df = df[(df[lat_col].notna()) & (df[lon_col].notna())]
     
     if valid_df.empty:
-        return go.Figure()
+        return go.Figure().add_annotation(
+            text="No valid coordinates",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False
+        )
     
     # Sample for performance
     if len(valid_df) > 3000:
         valid_df = valid_df.sample(n=3000, random_state=42)
     
     if center_lat is None:
-        center_lat = valid_df['LAT'].mean()
+        center_lat = valid_df[lat_col].mean()
     if center_lon is None:
-        center_lon = valid_df['LON'].mean()
+        center_lon = valid_df[lon_col].mean()
     
     fig = go.Figure()
     
-    fig.add_trace(go.Scattermapbox(
-        lat=valid_df['LAT'],
-        lon=valid_df['LON'],
-        mode='markers',
-        marker=dict(size=3, color='red', opacity=0.5),
-        text=valid_df.get('Crm Cd Desc', ''),
-        hovertemplate='<b>%{text}</b><br>Lat: %{lat:.4f}<br>Lon: %{lon:.4f}<extra></extra>'
-    ))
-    
-    fig.update_layout(
-        mapbox=dict(
-            style='open-street-map',
-            center=dict(lat=center_lat, lon=center_lon),
-            zoom=10
-        ),
-        margin=dict(l=0, r=0, t=0, b=0),
-        height=600
-    )
+    try:
+        crime_desc = valid_df.get('Crm Cd Desc', valid_df.get('Crime Type', ''))
+        fig.add_trace(go.Scattermapbox(
+            lat=valid_df[lat_col].tolist(),
+            lon=valid_df[lon_col].tolist(),
+            mode='markers',
+            marker=dict(size=3, color='red', opacity=0.5),
+            text=crime_desc if isinstance(crime_desc, pd.Series) else '',
+            hovertemplate='<b>%{text}</b><br>Lat: %{lat:.4f}<br>Lon: %{lon:.4f}<extra></extra>'
+        ))
+        
+        fig.update_layout(
+            mapbox=dict(
+                style='open-street-map',
+                center=dict(lat=float(center_lat), lon=float(center_lon)),
+                zoom=10,
+                accesstoken=None
+            ),
+            margin=dict(l=0, r=0, t=0, b=0),
+            height=600
+        )
+    except Exception as e:
+        print(f"Error creating map points: {e}")
+        # Fallback
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=valid_df[lon_col],
+            y=valid_df[lat_col],
+            mode='markers',
+            marker=dict(size=3, color='red', opacity=0.5)
+        ))
+        fig.update_layout(
+            title="Crime Locations",
+            xaxis_title="Longitude",
+            yaxis_title="Latitude",
+            height=600
+        )
     
     return fig
 
