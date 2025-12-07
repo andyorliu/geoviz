@@ -60,7 +60,7 @@ def create_map_heatmap(df, center_lat=None, center_lon=None):
             radius=10,
             colorscale='Reds',
             showscale=True,
-            colorbar=dict(title="Crime Density<br>(Relative Intensity)", titleside="right"),
+            colorbar=dict(title=dict(text="Crime Density<br>(Relative Intensity)", side="right")),
             below=''
         ))
         
@@ -315,7 +315,7 @@ def create_temporal_map(df, time_period_col, center_lat=None, center_lon=None):
                     color=period_data[count_col],
                     colorscale='Reds',
                     showscale=True,
-                    colorbar=dict(title="Number of<br>Crimes", titleside="right"),
+                    colorbar=dict(title=dict(text="Number of<br>Crimes", side="right")),
                     opacity=0.7,
                     cmin=0,
                     cmax=max_count
@@ -342,7 +342,7 @@ def create_temporal_map(df, time_period_col, center_lat=None, center_lon=None):
                 color=initial_data[count_col],
                 colorscale='Reds',
                 showscale=True,
-                colorbar=dict(title="Number of<br>Crimes", titleside="right"),
+                colorbar=dict(title=dict(text="Number of<br>Crimes", side="right")),
                 opacity=0.7,
                 cmin=0,
                 cmax=max_count

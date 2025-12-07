@@ -91,7 +91,7 @@ def create_hourly_heatmap(df, hour_col='Hour', day_col='DayOfWeekNum'):
         y=day_labels,
         colorscale='Reds',
         showscale=True,
-        colorbar=dict(title="Number of<br>Crimes", titleside="right"),
+        colorbar=dict(title=dict(text="Number of<br>Crimes", side="right")),
         hovertemplate='Day: %{y}<br>Hour: %{x}<br>Count: %{z}<extra></extra>'
     ))
     

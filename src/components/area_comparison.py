@@ -203,7 +203,7 @@ def create_area_correlation_heatmap(df, area_col='AREA NAME', date_col='DATE OCC
         colorscale='RdBu',
         zmid=0,
         showscale=True,
-        colorbar=dict(title="Correlation<br>Coefficient", titleside="right"),
+        colorbar=dict(title=dict(text="Correlation<br>Coefficient", side="right")),
         hovertemplate='%{x} vs %{y}<br>Correlation: %{z:.2f}<extra></extra>'
     ))
     

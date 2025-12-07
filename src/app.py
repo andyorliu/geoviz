@@ -322,7 +322,15 @@ def update_filtered_data(n_clicks, start_date, end_date, crime_types, areas):
         df = data_loader.load_cleaned_data(sample=True)
         
         if df is None or df.empty:
+            print("DEBUG update_filtered_data: No data loaded")
             return None
+        
+        print(f"DEBUG update_filtered_data: Original data shape: {df.shape}")
+        print(f"DEBUG update_filtered_data: Columns: {list(df.columns)[:10]}")
+        
+        # Check for coordinate columns
+        coord_cols = [col for col in df.columns if col.upper() in ['LAT', 'LATITUDE', 'LON', 'LONG', 'LONGITUDE']]
+        print(f"DEBUG update_filtered_data: Coordinate columns found: {coord_cols}")
         
         filters = {
             'date_range': (start_date, end_date) if start_date and end_date else None,
@@ -332,8 +340,11 @@ def update_filtered_data(n_clicks, start_date, end_date, crime_types, areas):
         
         filtered_df = apply_all_filters(df, filters)
         
+        print(f"DEBUG update_filtered_data: Filtered data shape: {filtered_df.shape}")
+        
         # Convert to JSON-serializable format
         if filtered_df.empty:
+            print("DEBUG update_filtered_data: Filtered data is empty")
             return None
         
         # Convert datetime columns to strings for JSON serialization
@@ -341,9 +352,26 @@ def update_filtered_data(n_clicks, start_date, end_date, crime_types, areas):
             if pd.api.types.is_datetime64_any_dtype(filtered_df[col]):
                 filtered_df[col] = filtered_df[col].astype(str)
         
-        return filtered_df.to_dict('records')
+        # Ensure numeric columns (LAT/LON) are properly converted
+        for col in filtered_df.columns:
+            if col.upper() in ['LAT', 'LATITUDE', 'LON', 'LONG', 'LONGITUDE']:
+                filtered_df[col] = pd.to_numeric(filtered_df[col], errors='coerce')
+        
+        result = filtered_df.to_dict('records')
+        print(f"DEBUG update_filtered_data: Returning {len(result)} records")
+        if result and len(result) > 0:
+            print(f"DEBUG update_filtered_data: First record keys: {list(result[0].keys())[:10]}")
+            # Check if LAT/LON are in the first record
+            first_keys = [k.upper() for k in result[0].keys()]
+            has_lat = any('LAT' in k for k in first_keys)
+            has_lon = any('LON' in k or 'LONG' in k for k in first_keys)
+            print(f"DEBUG update_filtered_data: Has LAT: {has_lat}, Has LON: {has_lon}")
+        
+        return result
     except Exception as e:
         print(f"Error in update_filtered_data: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 # Callback to update button active states
