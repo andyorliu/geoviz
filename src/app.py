@@ -357,6 +357,10 @@ def update_filtered_data(n_clicks, start_date, end_date, crime_types, areas):
             if col.upper() in ['LAT', 'LATITUDE', 'LON', 'LONG', 'LONGITUDE']:
                 filtered_df[col] = pd.to_numeric(filtered_df[col], errors='coerce')
         
+        
+        # Replace NaN with None for JSON serialization (NaN is not JSON-serializable)
+        # This is required for Dash 2.14+ which validates JSON before storing
+        filtered_df = filtered_df.replace({np.nan: None})
         result = filtered_df.to_dict('records')
         print(f"DEBUG update_filtered_data: Returning {len(result)} records")
         if result and len(result) > 0:
